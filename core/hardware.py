@@ -72,6 +72,7 @@ class umdv2:
     def connect(self, app):
         app.print_output("autodecting UMDv2...\n")
         umd_ports = []
+        self.port.clear()
         check_ports = self.list_serial_ports()
         if len(check_ports) == 0:
             app.print_output("no active serial ports detected, please connect a UMDv2 to the PC and press 'Connect'\n")

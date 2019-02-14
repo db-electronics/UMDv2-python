@@ -145,9 +145,10 @@ class appUmd(Tk):
 
         # version number and info at the bottom
         row += 1
+        self.lbl_listports = tk.Label(self, text="Available UMDv2 devices: ")
+        self.lbl_listports.grid(row=row, column=0, padx=4, pady=4, sticky="w")
+        row += 1
         self.frm_ports = tk.Frame(self)
-        self.lbl_listports = tk.Label(self.frm_ports, text="Available UMDv2 devices: ")
-        self.lbl_listports.grid(row=0, column=0, padx=4, pady=4, sticky="we")
         self.frm_ports.grid(row=row, padx=4, pady=4, sticky="nwes")
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -158,6 +159,8 @@ class appUmd(Tk):
     def connect_umd(self):
         self.umdv2.connect(self)
         self.selected_ports.clear()
+        for widget in self.frm_ports.pack_slaves():
+            widget.destroy()
         i = 0
         for port in self.umdv2.port:
             var = tk.IntVar()
@@ -168,7 +171,7 @@ class appUmd(Tk):
             self.selected_ports[port] = var
             if i == 0:
                 self.chk_port.select()
-            self.chk_port.grid(row=1, column=i, padx=4, pady=4, sticky="w")
+            self.chk_port.pack(side=LEFT)
             i += 1
 
         # add a few dummy ports
@@ -180,8 +183,7 @@ class appUmd(Tk):
                                            variable=var,
                                            command=self.select_port)
             self.selected_ports[port] = var
-            self.chk_port.grid(row=1, column=i, padx=4, pady=4, sticky="w")
-            i += 1
+            self.chk_port.pack(side=LEFT)
 
     # ------------------------------------------------------------------------------------------------------------------
     #  select console
