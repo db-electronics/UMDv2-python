@@ -28,9 +28,10 @@
 import sys
 import configparser
 
+
 #  configfile
 #
-#  All Genesis specific functions
+#  A simnple wrapper for configparser which autocreates a default file if none is present
 class configfile:
 
     path = ""
@@ -38,7 +39,7 @@ class configfile:
     # ------------------------------------------------------------------------------------------------------------------
     #  __init__
     #
-    #  select a local file
+    #  initialize - create a default config if none is found
     # ------------------------------------------------------------------------------------------------------------------
     def __init__(self, path):
         try:
