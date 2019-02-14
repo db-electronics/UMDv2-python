@@ -13,13 +13,18 @@
 # sudo apt install python-pip3
 # pip3 install pyserial
 
-
+import sys
+import os
 import glob
 import serial
+import tkinter as tk
 from tkinter import *
 from tkinter import filedialog
-from PIL import Image, ImageTk
+import configparser
+import subprocess
 
+from PIL import Image, ImageTk
+from core.configfile import configfile
 from core.hardware import umddb
 from core.genesis import genesis
 from core.sms import sms
@@ -33,47 +38,58 @@ class appUmd(Tk):
     umd_ports = []
     load_filename = ""
 
-    cart_types = ["Genesis", "SMS", "SNES", "TG16"]
+    configfile = ""
+
+    cart_types = ["genesis", "sms", "snes", "tg16"]
 
     # ------------------------------------------------------------------------------------------------------------------
     #  __init__
     #
     #  select a local file
     # ------------------------------------------------------------------------------------------------------------------
-    def __init__(self, *args, **kwargs):
+    def __init__(self, conf, *args, **kwargs):
+
+        # store config in this class
+        self.configfile = conf
+
         # declare main window
         Tk.__init__(self, *args, **kwargs)
         self.title("UMDv2")
-        self.ico_load = PhotoImage(file="res/db.gif")
+        self.ico_load = tk.PhotoImage(file="res/db.gif")
         self.tk.call("wm", "iconphoto", self._w, self.ico_load)
 
         # create menus
-        self.menu = Menu(self)
+        self.menu = tk.Menu(self)
         self.config(menu=self.menu)
-        self.file = Menu(self.menu)
-        self.file.add_command(label="Load ROM", command=self.load_rom)
-        self.file.add_separator()
-        self.file.add_command(label="Exit", command=self.app_exit)
-        self.menu.add_cascade(label="File", menu=self.file)
+        self.menu_file = tk.Menu(self.menu)
+        self.menu_file.add_command(label="Load ROM", command=self.load_rom)
+        self.menu_file.add_separator()
+        self.menu_file.add_command(label="Preferences", command=self.open_preferences)
+        self.menu_file.add_separator()
+        self.menu_file.add_command(label="Exit", command=self.app_exit)
+        self.menu.add_cascade(label="File", menu=self.menu_file)
+
+        #self.about_menu
 
         # add elements to the window
         row = 0
         # two buttons inside the same drive element
-        self.frm_buttons = Frame(self)
-        self.btn_loadrom = Button(self.frm_buttons, text="Load ROM", command=self.load_rom).pack(side=LEFT)
+        self.frm_buttons = tk.Frame(self)
+        self.btn_loadrom = tk.Button(self.frm_buttons, text="Load ROM", command=self.load_rom).pack(side=LEFT)
         self.btn_connect_umd = Button(self.frm_buttons, text="Connect", command=self.connect_umd).pack(side=LEFT)
         self.frm_buttons.grid_propagate(False)
         self.frm_buttons.grid(row=row, column=0, padx=8, pady=4, sticky="nwe")
 
         # option menu for console selection
         row = row + 1
-        self.frm_options = Frame(self)
+        self.frm_options = tk.Frame(self)
         menu_width = len(max(self.cart_types, key=len))
-        self.lbl_consoles = Label(self.frm_options, text="Cart Type")
+        self.lbl_consoles = tk.Label(self.frm_options, text="Cart Type")
         self.lbl_consoles.grid(row=0, column=0)
-        self.var_consoles = StringVar(self)
-        self.var_consoles.set(self.cart_types[0])
-        self.opt_consoles = OptionMenu(self.frm_options, self.var_consoles, *self.cart_types, command=self.select_console)
+        self.var_consoles = tk.StringVar(self)
+        self.var_consoles.set(self.configfile.read("CONSOLE", "last_selected"))
+        self.opt_consoles = tk.OptionMenu(self.frm_options, self.var_consoles,
+                                          *self.cart_types, command=self.select_console)
         self.opt_consoles.config(width=menu_width)
         self.opt_consoles.grid(row=1, column=0, sticky="w")
 
@@ -88,24 +104,24 @@ class appUmd(Tk):
 
         # entry box for sending commands to UMDv2
         row = row + 1
-        self.lbl_output = Label(self, text="Send Command")
+        self.lbl_output = tk.Label(self, text="Send Command")
         self.lbl_output.grid(row=row, padx=8, sticky="nw")
         row = row + 1
-        self.entry_cmd = Entry(self)
+        self.entry_cmd = tk.Entry(self)
         self.entry_cmd.grid(row=row, padx=8, pady=4, sticky="wes")
         self.entry_cmd.bind("<Return>", self.send_txt_command)
 
         # message box + label for console output
         row = row + 1
-        self.sep_console = Frame(self, height=2, bd=10, relief=RAISED)
+        self.sep_console = tk.Frame(self, height=2, bd=10, relief=RAISED)
         self.sep_console.grid(row=row, sticky="we", padx=10)
         row = row + 1
-        self.lbl_output = Label(self, text="UMDv2 output")
+        self.lbl_output = tk.Label(self, text="UMDv2 output")
         self.lbl_output.grid(row=row, padx=10, sticky="w")
         row = row + 1
         # create a frame for console output and scrollbar
-        self.frm_console = Frame(self)
-        self.txt_output = Text(self.frm_console, height=20, width=120)
+        self.frm_console = tk.Frame(self)
+        self.txt_output = tk.Text(self.frm_console, height=20, width=120)
         self.txt_output.config(bg="black", fg="green", font=("Courier", 10), padx=4, pady=4)
         self.txt_output.grid(row=0, column=0, padx=4, pady=4, sticky="nwes")
         self.scroll_txt = Scrollbar(self.frm_console, command=self.txt_output.yview)
@@ -121,10 +137,10 @@ class appUmd(Tk):
 
         # version number and info at the bottom
         row = row + 1
-        self.frm_status = Frame(self)
-        self.lbl_cart = Label(self.frm_status, text="File: ")
+        self.frm_status = tk.Frame(self)
+        self.lbl_cart = tk.Label(self.frm_status, text="File: ")
         self.lbl_cart.grid(row=0, column=0, padx=4, pady=4, sticky="we")
-        self.lbl_output = Label(self.frm_status, text="UMDv2 version 2.0.0.0")
+        self.lbl_output = tk.Label(self.frm_status, text="UMDv2 version 2.0.0.0")
         self.lbl_output.grid(row=0, column=1, padx=4, pady=4, sticky="we")
         self.frm_status.grid(row=row, padx=4, pady=4, sticky="nwes")
 
@@ -135,8 +151,21 @@ class appUmd(Tk):
     # ------------------------------------------------------------------------------------------------------------------
     def select_console(self, event):
         selected = self.var_consoles.get()
+        self.configfile.modify("CONSOLE", "last_selected", selected)
         self.print_output(selected + "\n")
         pass
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #  open preferences
+    #
+    #  open the preferences file in the platform's default app
+    # ------------------------------------------------------------------------------------------------------------------
+    def open_preferences(self):
+        try:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.call([opener, "umd.conf"])
+        except IOError:
+            pass
 
     # ------------------------------------------------------------------------------------------------------------------
     #  load_rom
@@ -144,7 +173,8 @@ class appUmd(Tk):
     #  select a local file
     # ------------------------------------------------------------------------------------------------------------------
     def load_rom(self):
-        self.load_filename = filedialog.askopenfilename()
+        initial_directory = self.configfile.read("ROMDIRECTORIES", self.var_consoles.get())
+        self.load_filename = filedialog.askopenfilename(initialdir=initial_directory)
         if(len(self.load_filename)) > 0:
             self.print_output(self.load_filename + "\n")
 
@@ -201,8 +231,12 @@ class appUmd(Tk):
             for port in check_ports:
                 self.print_output("attempting to connect to UMDv2 on " + port + " : ")
                 try:
-                    ser = serial.Serial(port=port, baudrate=460800, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE,
-                                        stopbits=serial.STOPBITS_ONE, timeout=0.5)
+                    ser = serial.Serial(port=port,
+                                        baudrate=460800,
+                                        bytesize=serial.EIGHTBITS,
+                                        parity=serial.PARITY_NONE,
+                                        stopbits=serial.STOPBITS_ONE,
+                                        timeout=0.5)
                     ser.write(bytes("flash\n", "utf-8"))
                     response = ser.readline().decode("utf-8")
                     if response == "flash\n":
@@ -228,7 +262,13 @@ class appUmd(Tk):
         pass
 
 
-app = appUmd()
-app.connect_umd()
+# check for config file
+configfile = configfile("umd.conf")
+
+app = appUmd(configfile)
+
+if configfile.read("UMD", "auto_connect_on_start") == "yes":
+    app.connect_umd()
+
 app.mainloop()
 
