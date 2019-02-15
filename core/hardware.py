@@ -79,7 +79,7 @@ class UMDv2:
             pass
         else:
             for port in check_ports:
-                print("attempting to connect to UMDv2 on " + port + " : ")
+                print("attempting to connect to UMDv2 on " + port + " : ", end='')
                 try:
                     ser = serial.Serial(port=port,
                                         baudrate=460800,
@@ -96,7 +96,6 @@ class UMDv2:
                         print("timed out")
                         pass
                     ser.close()
-                    app.txt_output.update()
                 except (OSError, serial.SerialException):
                     pass
 

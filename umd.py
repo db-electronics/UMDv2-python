@@ -17,6 +17,7 @@ import sys
 import os
 import glob
 import serial
+import threading
 from io import TextIOWrapper
 import tkinter as tk
 from tkinter import *
@@ -37,7 +38,7 @@ class AppUmd(Tk):
 
     hex_test = "0x000000 00 01 02 03 04 05 06 06 07 08 09 0A 0B 0C 0D 0E 0F\n"
 
-    load_filename = ""
+    load_filename = None
 
     configfile = ""
     umdv2 = ""
@@ -82,14 +83,21 @@ class AppUmd(Tk):
 
         # add elements to the window
         row = 0
+        self.lbl_romtasks = tk.Label(self, text="ROM tasks: ")
+        self.lbl_romtasks.grid(row=row, column=0, padx=8, pady=4, sticky="w")
+        row += 1
         # two buttons inside the same drive element
-        self.frm_buttons = tk.Frame(self)
-        self.btn_loadrom = tk.Button(self.frm_buttons, text="Load ROM", command=self.load_rom).pack(side=LEFT)
-        self.btn_connect_umd = Button(self.frm_buttons, text="Connect", command=self.connect_umd).pack(side=LEFT)
-        self.frm_buttons.grid_propagate(False)
-        self.frm_buttons.grid(row=row, column=0, padx=8, pady=4, sticky="nwe")
+        self.frm_romfunctions = tk.Frame(self)
+        self.btn_loadrom = tk.Button(self.frm_romfunctions, text="Load ROM", command=self.load_rom).pack(side=LEFT)
+        self.btn_md5 = Button(self.frm_romfunctions, text="MD5", command=self.calc_md5).pack(side=LEFT)
+        self.btn_connect_umd = Button(self.frm_romfunctions, text="Connect", command=self.connect_umd).pack(side=LEFT)
+        self.frm_romfunctions.grid_propagate(False)
+        self.frm_romfunctions.grid(row=row, column=0, padx=8, pady=4, sticky="nwe")
 
         # option menu for console selection
+        row += 1
+        self.lbl_umdtasks = tk.Label(self, text="UMD tasks: ")
+        self.lbl_umdtasks.grid(row=row, column=0, padx=8, pady=4, sticky="w")
         row += 1
         self.frm_options = tk.Frame(self)
         menu_width = len(max(self.cart_types, key=len))
@@ -147,7 +155,7 @@ class AppUmd(Tk):
         # version number and info at the bottom
         row += 1
         self.lbl_listports = tk.Label(self, text="Available UMDv2 devices: ")
-        self.lbl_listports.grid(row=row, column=0, padx=4, pady=4, sticky="w")
+        self.lbl_listports.grid(row=row, column=0, padx=8, pady=4, sticky="w")
         row += 1
         self.frm_ports = tk.Frame(self)
         self.frm_ports.grid(row=row, padx=4, pady=4, sticky="nwes")
@@ -155,36 +163,50 @@ class AppUmd(Tk):
     # ------------------------------------------------------------------------------------------------------------------
     #  connect umd
     #
-    #  select a local file
+    #  start a background thread to connect to the UMD
     # ------------------------------------------------------------------------------------------------------------------
     def connect_umd(self):
-        self.umdv2.connect(self)
-        self.selected_ports.clear()
-        for widget in self.frm_ports.pack_slaves():
-            widget.destroy()
-        i = 0
-        for port in self.umdv2.port:
-            var = tk.IntVar()
-            self.chk_port = tk.Checkbutton(self.frm_ports,
-                                           text=port,
-                                           variable=var,
-                                           command=self.select_port)
-            self.selected_ports[port] = var
-            if i == 0:
-                self.chk_port.select()
-            self.chk_port.pack(side=LEFT)
-            i += 1
+        def callback():
+            self.umdv2.connect(self)
+            self.selected_ports.clear()
+            for widget in self.frm_ports.pack_slaves():
+                widget.destroy()
+            i = 0
+            for port in self.umdv2.port:
+                var = tk.IntVar()
+                self.chk_port = tk.Checkbutton(self.frm_ports,
+                                               text=port,
+                                               variable=var,
+                                               command=self.select_port)
+                self.selected_ports[port] = var
+                if i == 0:
+                    self.chk_port.select()
+                self.chk_port.pack(side=LEFT)
+                i += 1
 
-        # add a few dummy ports
-        for dummy in range(0, 3):
-            var = tk.IntVar()
-            port = "port" + str(dummy)
-            self.chk_port = tk.Checkbutton(self.frm_ports,
-                                           text=port,
-                                           variable=var,
-                                           command=self.select_port)
-            self.selected_ports[port] = var
-            self.chk_port.pack(side=LEFT)
+            # add a few dummy ports
+            for dummy in range(0, 3):
+                var = tk.IntVar()
+                port = "port" + str(dummy)
+                self.chk_port = tk.Checkbutton(self.frm_ports,
+                                               text=port,
+                                               variable=var,
+                                               command=self.select_port)
+                self.selected_ports[port] = var
+                self.chk_port.pack(side=LEFT)
+        thread = threading.Thread(target=callback)
+        thread.start()
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #  select console
+    #
+    #  select a local file
+    # ------------------------------------------------------------------------------------------------------------------
+    def calc_md5(self):
+        if self.load_filename is not None:
+            print("Calculating MD5 sum on {}".format(self.load_filename))
+        else:
+            messagebox.showwarning("Warning", "You must load a ROM before performing this operation")
 
     # ------------------------------------------------------------------------------------------------------------------
     #  select console
@@ -291,20 +313,28 @@ class RedirectOutput(TextIOWrapper):
         self.txt_output.configure(state="disabled")
 
 
-# check for config file
-configfile = ConfigFile("umd.conf")
+# ------------------------------------------------------------------------------------------------------------------
+#  main
+#
+#  main application
+# ------------------------------------------------------------------------------------------------------------------
+if __name__ == "__main__":
+    # execute only if run as a script
 
-# create umd
-timeout = float(configfile.read("UMD", "timeout"))
-umdv2 = UMDv2(timeout)
-app = AppUmd(configfile, umdv2)
+    # check for config file
+    configfile = ConfigFile("umd.conf")
 
-# redirect stdout to the console window in the GUI
-redirector = RedirectOutput(app.txt_output)
-sys.stdout = redirector
+    # create umd
+    timeout = float(configfile.read("UMD", "timeout"))
+    umdv2 = UMDv2(timeout)
+    app = AppUmd(configfile, umdv2)
 
-if configfile.read("UMD", "auto_connect_on_start") == "yes":
-    app.connect_umd()
+    # redirect stdout to the console window in the GUI
+    redirector = RedirectOutput(app.txt_output)
+    sys.stdout = redirector
 
-app.mainloop()
+    if configfile.read("UMD", "auto_connect_on_start") == "yes":
+        app.connect_umd()
+
+    app.mainloop()
 

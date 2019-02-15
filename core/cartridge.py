@@ -63,3 +63,12 @@ class Cartridge:
             return hash_md5.digest()
         else:
             print("No file path specified for source file")
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #  apply_ips
+    #
+    #  apply an ips patch to the ROM
+    # ------------------------------------------------------------------------------------------------------------------
+    def apply_ips(self, ips_file):
+        # https://ipsy.readthedocs.io/en/latest/#ips-file-format
+        pass
