@@ -42,7 +42,7 @@ class Cartridge:
     #  initialize - create a default cartridge
     # ------------------------------------------------------------------------------------------------------------------
     def __init__(self, path=None):
-        self.path = path
+        self.filepath = path
         pass
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -51,9 +51,9 @@ class Cartridge:
     #  calculate the md5 sum of the ROM
     # ------------------------------------------------------------------------------------------------------------------
     def md5(self):
-        if self.path is not None:
+        if self.filepath is not None:
             hash_md5 = hashlib.md5()
-            with open(self.path, "rb") as f:
+            with open(self.filepath, "rb") as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     hash_md5.update(chunk)
             # packed bytes

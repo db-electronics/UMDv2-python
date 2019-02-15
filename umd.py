@@ -27,21 +27,15 @@ import configparser
 import subprocess
 
 from PIL import Image, ImageTk
+from core.cartridge import Cartridge
 from core.configfile import ConfigFile
 from core.hardware import UMDv2
-from core.genesis import genesis
+from core.genesis import Genesis
 from core.sms import sms
 from core.snes import snes
 
 
 class AppUmd(Tk):
-
-    hex_test = "0x000000 00 01 02 03 04 05 06 06 07 08 09 0A 0B 0C 0D 0E 0F\n"
-
-    load_filename = None
-
-    configfile = ""
-    umdv2 = ""
 
     # selected ports holds the IntVar() type, active_ports is boolean
     selected_ports = {}
@@ -60,6 +54,9 @@ class AppUmd(Tk):
         self.configfile = conf
         self.umdv2 = device
 
+        console_menu_width = len(max(self.cart_types, key=len))
+        button_width = 9
+
         # declare main window
         Tk.__init__(self, *args, **kwargs)
         self.title("UMDv2")
@@ -70,47 +67,75 @@ class AppUmd(Tk):
         self.menu = tk.Menu(self)
         self.config(menu=self.menu)
         self.menu_file = tk.Menu(self.menu)
-        self.menu_file.add_command(label="Load ROM", command=self.load_rom)
+        self.menu_file.add_command(label="Select ROM", command=self.select_rom)
         self.menu_file.add_separator()
         self.menu_file.add_command(label="Preferences", command=self.open_preferences)
         self.menu_file.add_separator()
-        self.menu_file.add_command(label="Exit", command=self.app_exit)
+        self.menu_file.add_command(label="Exit",
+                                   command=lambda: exit())
         self.menu.add_cascade(label="File", menu=self.menu_file)
 
         self.menu_help = tk.Menu(self.menu)
-        self.menu_help.add_command(label="About", command=self.about_popup)
+        self.menu_help.add_command(label="About",
+                                   command=lambda: messagebox.showinfo("About",
+                                                                       "UMDv2 software and hardware designed by René Richard"))
         self.menu.add_cascade(label="Help", menu=self.menu_help)
 
         # add elements to the window
         row = 0
-        self.lbl_romtasks = tk.Label(self, text="ROM tasks: ")
-        self.lbl_romtasks.grid(row=row, column=0, padx=8, pady=4, sticky="w")
+        self.lbl_romtasks = tk.Label(self, text="ROM Tasks")
+        self.lbl_romtasks.grid(row=row, column=0, columnspan=2, padx=8, pady=4, sticky="w")
         row += 1
-        # two buttons inside the same drive element
-        self.frm_romfunctions = tk.Frame(self)
-        self.btn_loadrom = tk.Button(self.frm_romfunctions, text="Load ROM", command=self.load_rom).pack(side=LEFT)
-        self.btn_md5 = Button(self.frm_romfunctions, text="MD5", command=self.calc_md5).pack(side=LEFT)
-        self.btn_connect_umd = Button(self.frm_romfunctions, text="Connect", command=self.connect_umd).pack(side=LEFT)
-        self.frm_romfunctions.grid_propagate(False)
-        self.frm_romfunctions.grid(row=row, column=0, padx=8, pady=4, sticky="nwe")
+        # buttons for local ROM tasks
+        self.frm_romtasks = tk.Frame(self)
+        self.var_romconsole = tk.StringVar(self)
+        self.var_romconsole.set(self.configfile.read("CONSOLE", "last_selected"))
+        self.opt_romconsole = tk.OptionMenu(self.frm_romtasks,
+                                            self.var_romconsole,
+                                            *self.cart_types,
+                                            command=self.select_console)
+        self.opt_romconsole.config(width=console_menu_width)
+        self.opt_romconsole.pack(side=LEFT)
+        self.btn_loadrom = tk.Button(self.frm_romtasks,
+                                     text="Select ROM",
+                                     width=button_width,
+                                     command=self.select_rom).pack(side=LEFT)
+        self.btn_md5 = Button(self.frm_romtasks,
+                              text="MD5",
+                              width=button_width,
+                              command=self.calc_md5).pack(side=LEFT)
+        self.btn_md5 = Button(self.frm_romtasks,
+                              text="Header",
+                              width=button_width,
+                              command=self.read_header).pack(side=LEFT)
+        self.frm_romtasks.grid_propagate(False)
+        self.frm_romtasks.grid(row=row, column=0, padx=8, pady=4, sticky="nwe")
+        row += 1
+        self.var_selectedrom = StringVar()
+        self.lbl_currentrom = tk.Label(self, textvariable=self.var_selectedrom)
+        self.lbl_currentrom.grid(row=row, column=0, padx=8, pady=4, sticky="w")
 
-        # option menu for console selection
+        # check if there is a last_rom in the config gile
+        check_last = self.configfile.read("FILES", "last_rom")
+        if len(check_last) > 0:
+            self.var_selectedrom.set(check_last)
+
+        # buttons for remote UMD tasks
         row += 1
-        self.lbl_umdtasks = tk.Label(self, text="UMD tasks: ")
+        self.sep_console = tk.Frame(self, height=2, bd=10, relief=RAISED)
+        self.sep_console.grid(row=row, column=0, columnspan=2, sticky="we", padx=10)
+        row += 1
+        self.lbl_umdtasks = tk.Label(self, text="UMD Tasks")
         self.lbl_umdtasks.grid(row=row, column=0, padx=8, pady=4, sticky="w")
         row += 1
-        self.frm_options = tk.Frame(self)
-        menu_width = len(max(self.cart_types, key=len))
-        self.lbl_consoles = tk.Label(self.frm_options, text="Cart Type")
-        self.lbl_consoles.grid(row=0, column=0)
-        self.var_consoles = tk.StringVar(self)
-        self.var_consoles.set(self.configfile.read("CONSOLE", "last_selected"))
-        self.opt_consoles = tk.OptionMenu(self.frm_options, self.var_consoles,
-                                          *self.cart_types, command=self.select_console)
-        self.opt_consoles.config(width=menu_width)
-        self.opt_consoles.grid(row=1, column=0, sticky="w")
+        self.frm_umdtasks = tk.Frame(self)
 
-        self.frm_options.grid(row=row, column=0, padx=8, pady=4, sticky="nwe")
+        self.btn_connect_umd = Button(self.frm_umdtasks,
+                                      text="Connect",
+                                      width=button_width,
+                                      command=self.connect_umd).pack(side=LEFT)
+
+        self.frm_umdtasks.grid(row=row, column=0, padx=8, pady=4, sticky="nwe")
 
         # load an image for shits and giggles
         # self.img_load = Image.open("res/db-favicon.png")
@@ -120,6 +145,9 @@ class AppUmd(Tk):
         # self.img_dblogo.grid(row=row, column=1, padx=4, pady=4, sticky=N+E)
 
         # entry box for sending commands to UMDv2
+        row += 1
+        self.sep_console = tk.Frame(self, height=2, bd=10, relief=RAISED)
+        self.sep_console.grid(row=row, column=0, columnspan=2, sticky="we", padx=10)
         row += 1
         self.lbl_output = tk.Label(self, text="Send Command")
         self.lbl_output.grid(row=row, padx=8, sticky="nw")
@@ -134,19 +162,19 @@ class AppUmd(Tk):
         self.sep_console.grid(row=row, sticky="we", padx=10)
         row += 1
         self.lbl_output = tk.Label(self, text="UMDv2 output")
-        self.lbl_output.grid(row=row, padx=10, sticky="w")
+        self.lbl_output.grid(row=row, padx=10, pady=8, sticky="w")
         row += 1
         # create a frame for console output and scrollbar
         self.frm_console = tk.Frame(self)
         self.txt_output = tk.Text(self.frm_console, height=20, width=120)
-        self.txt_output.config(bg="black", fg="green", font=("Courier", 10), padx=4, pady=4)
+        self.txt_output.config(bg="black", fg="cyan", font=("Courier", 10), padx=4, pady=4)
         self.txt_output.grid(row=0, column=0, padx=4, pady=4, sticky="nwes")
         self.scroll_txt = Scrollbar(self.frm_console, command=self.txt_output.yview)
         self.scroll_txt.grid(row=0, column=1, sticky="nwes")
         self.txt_output['yscrollcommand'] = self.scroll_txt.set
         self.frm_console.grid_rowconfigure(0, weight=1)
         self.frm_console.grid_columnconfigure(0, weight=1)
-        self.frm_console.grid(row=row, padx=4, pady=4, sticky="nwes")
+        self.frm_console.grid(row=row, column=0, columnspan=2, padx=4, pady=4, sticky="nwes")
 
         # resize the frm_console on window resize
         self.columnconfigure(0, weight=1)
@@ -156,6 +184,11 @@ class AppUmd(Tk):
         row += 1
         self.lbl_listports = tk.Label(self, text="Available UMDv2 devices: ")
         self.lbl_listports.grid(row=row, column=0, padx=8, pady=4, sticky="w")
+        self.btn_clroutput = tk.Button(self,
+                                       text="Clear",
+                                       width=button_width,
+                                       command=self.clear_output)
+        self.btn_clroutput.grid(row=row, column=1, padx=8, pady=4, sticky="e")
         row += 1
         self.frm_ports = tk.Frame(self)
         self.frm_ports.grid(row=row, padx=4, pady=4, sticky="nwes")
@@ -185,15 +218,15 @@ class AppUmd(Tk):
                 i += 1
 
             # add a few dummy ports
-            for dummy in range(0, 3):
-                var = tk.IntVar()
-                port = "port" + str(dummy)
-                self.chk_port = tk.Checkbutton(self.frm_ports,
-                                               text=port,
-                                               variable=var,
-                                               command=self.select_port)
-                self.selected_ports[port] = var
-                self.chk_port.pack(side=LEFT)
+            # for dummy in range(0, 3):
+            #     var = tk.IntVar()
+            #     port = "port" + str(dummy)
+            #     self.chk_port = tk.Checkbutton(self.frm_ports,
+            #                                    text=port,
+            #                                    variable=var,
+            #                                    command=self.select_port)
+            #     self.selected_ports[port] = var
+            #     self.chk_port.pack(side=LEFT)
         thread = threading.Thread(target=callback)
         thread.start()
 
@@ -202,9 +235,30 @@ class AppUmd(Tk):
     #
     #  select a local file
     # ------------------------------------------------------------------------------------------------------------------
+    def read_header(self):
+        filepath = self.var_selectedrom.get()
+        console = self.var_romconsole.get()
+        if len(filepath) > 0:
+            if console == "genesis":
+                rom = Genesis(filepath)
+            for item in sorted(rom.read_header().items()):
+                print(item)
+            del rom
+        else:
+            messagebox.showwarning("Warning", "You must load a ROM before performing this operation")
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #  select console
+    #
+    #  select a local file
+    # ------------------------------------------------------------------------------------------------------------------
     def calc_md5(self):
-        if self.load_filename is not None:
-            print("Calculating MD5 sum on {}".format(self.load_filename))
+        filepath = self.var_selectedrom.get()
+        if len(filepath) > 0:
+            rom = Cartridge(filepath)
+            rom.md5()
+            print("MD5 sum of {} is {}".format(os.path.basename(filepath), rom.md5_hex_str))
+            del rom
         else:
             messagebox.showwarning("Warning", "You must load a ROM before performing this operation")
 
@@ -227,20 +281,20 @@ class AppUmd(Tk):
     #  select a local file
     # ------------------------------------------------------------------------------------------------------------------
     def select_console(self, event):
-        selected = self.var_consoles.get()
+        selected = self.var_romconsole.get()
         self.configfile.modify("CONSOLE", "last_selected", selected)
-        print(selected)
 
     # ------------------------------------------------------------------------------------------------------------------
-    #  load_rom
+    #  select_rom
     #
-    #  load a ROM file, default to this console's ROM directory
+    #  select a ROM file, default to this console's ROM directory
     # ------------------------------------------------------------------------------------------------------------------
-    def load_rom(self):
-        initial_directory = self.configfile.read("ROMDIRECTORIES", self.var_consoles.get())
-        self.load_filename = filedialog.askopenfilename(initialdir=initial_directory)
-        if(len(self.load_filename)) > 0:
-            print(self.load_filename)
+    def select_rom(self):
+        initial_directory = self.configfile.read("ROMDIRECTORIES", self.var_romconsole.get())
+        selection = filedialog.askopenfilename(initialdir=initial_directory)
+        if len(selection) > 0:
+            self.var_selectedrom.set(selection)
+            self.configfile.modify("FILES", "last_rom", selection)
 
     # ------------------------------------------------------------------------------------------------------------------
     #  write
@@ -270,6 +324,17 @@ class AppUmd(Tk):
             print("sending : " + command)
 
     # ------------------------------------------------------------------------------------------------------------------
+    #  send_txt_command
+    #  \param event
+    #
+    #  Send a plain text command to the UMDv2
+    # ------------------------------------------------------------------------------------------------------------------
+    def clear_output(self):
+        self.txt_output.configure(state="normal")
+        self.txt_output.delete("1.0", tk.END)
+        self.txt_output.configure(state="disabled")
+
+    # ------------------------------------------------------------------------------------------------------------------
     #  open preferences
     #
     #  open the preferences file in the platform's default app
@@ -290,15 +355,6 @@ class AppUmd(Tk):
     @staticmethod
     def about_popup():
         messagebox.showinfo("About", "UMDv2 software and hardware designed by René Richard")
-
-    # ------------------------------------------------------------------------------------------------------------------
-    #  app_exit
-    #
-    #  Retrieve the ROM's manufacturer flash ID
-    # ------------------------------------------------------------------------------------------------------------------
-    @staticmethod
-    def app_exit():
-        exit()
 
 
 class RedirectOutput(TextIOWrapper):

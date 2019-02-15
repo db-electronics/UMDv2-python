@@ -61,8 +61,8 @@ class ConfigFile:
         # create a generic conf file if none is found
         config = configparser.ConfigParser()
         config["UMD"] = {"auto_connect_on_start": "yes",
-                         "last_port": "",
                          "timeout": "0.5"}
+        config["FILES"] = {"last_rom": ""}
         config["COMMAND"] = {"clear_entry_on_send": "yes",
                              "auto_append_lf": "yes"}
         config["CONSOLE"] = {"last_selected": "genesis"}

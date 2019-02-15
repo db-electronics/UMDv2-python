@@ -1,5 +1,6 @@
 __all__ = [
-            'configfile' 
+            'ConfigFile' 
+            'Cartridge'
             'hardware',
             'genesis',
             'sms',
