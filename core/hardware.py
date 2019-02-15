@@ -32,7 +32,7 @@ import serial
 ## Universal Mega Dumper
 #
 #  All communications with the UMD are handled by the umd class
-class umdv2:
+class UMDv2:
 
     timeout = 0
     port = {}
@@ -70,16 +70,16 @@ class umdv2:
     #  Attempt to connect to all UMDv2 connected to the computer
     # ------------------------------------------------------------------------------------------------------------------
     def connect(self, app):
-        app.print_output("autodecting UMDv2...\n")
+        print("autodecting UMDv2...")
         umd_ports = []
         self.port.clear()
         check_ports = self.list_serial_ports()
         if len(check_ports) == 0:
-            app.print_output("no active serial ports detected, please connect a UMDv2 to the PC and press 'Connect'\n")
+            print("no active serial ports detected, please connect a UMDv2 to the PC and press 'Connect'")
             pass
         else:
             for port in check_ports:
-                app.print_output("attempting to connect to UMDv2 on " + port + " : ")
+                print("attempting to connect to UMDv2 on " + port + " : ")
                 try:
                     ser = serial.Serial(port=port,
                                         baudrate=460800,
@@ -90,10 +90,10 @@ class umdv2:
                     ser.write(bytes("flash\n", "utf-8"))
                     response = ser.readline().decode("utf-8")
                     if response == "flash\n":
-                        app.print_output("present!\n")
+                        print("present!")
                         umd_ports.append(port)
                     else:
-                        app.print_output("timed out\n")
+                        print("timed out")
                         pass
                     ser.close()
                     app.txt_output.update()

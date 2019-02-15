@@ -32,7 +32,7 @@ import configparser
 #  configfile
 #
 #  A simnple wrapper for configparser which autocreates a default file if none is present
-class configfile:
+class ConfigFile:
 
     path = ""
 

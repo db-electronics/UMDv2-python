@@ -17,6 +17,7 @@ import sys
 import os
 import glob
 import serial
+from io import TextIOWrapper
 import tkinter as tk
 from tkinter import *
 from tkinter import filedialog
@@ -25,14 +26,14 @@ import configparser
 import subprocess
 
 from PIL import Image, ImageTk
-from core.configfile import configfile
-from core.hardware import umdv2
+from core.configfile import ConfigFile
+from core.hardware import UMDv2
 from core.genesis import genesis
 from core.sms import sms
 from core.snes import snes
 
 
-class appUmd(Tk):
+class AppUmd(Tk):
 
     hex_test = "0x000000 00 01 02 03 04 05 06 06 07 08 09 0A 0B 0C 0D 0E 0F\n"
 
@@ -193,9 +194,9 @@ class appUmd(Tk):
     def select_port(self):
         self.active_ports.clear()
         for key, value in self.selected_ports.items():
-            self.print_output(key + " ")
+            print(key + " ", end='')
             state = self.selected_ports[key].get()
-            self.print_output(str(state) + "\n")
+            print(str(state))
             self.active_ports[key] = bool(value.get())
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -206,7 +207,7 @@ class appUmd(Tk):
     def select_console(self, event):
         selected = self.var_consoles.get()
         self.configfile.modify("CONSOLE", "last_selected", selected)
-        self.print_output(selected + "\n")
+        print(selected)
 
     # ------------------------------------------------------------------------------------------------------------------
     #  load_rom
@@ -217,19 +218,19 @@ class appUmd(Tk):
         initial_directory = self.configfile.read("ROMDIRECTORIES", self.var_consoles.get())
         self.load_filename = filedialog.askopenfilename(initialdir=initial_directory)
         if(len(self.load_filename)) > 0:
-            self.print_output(self.load_filename + "\n")
+            print(self.load_filename)
 
     # ------------------------------------------------------------------------------------------------------------------
-    #  app_exit
+    #  write
     #  \param string
     #
     #  print to the console output and autoscroll
     # ------------------------------------------------------------------------------------------------------------------
-    def print_output(self, string):
-        self.txt_output.configure(state="normal")
-        self.txt_output.insert(END, string)
-        self.txt_output.see(END)
-        self.txt_output.configure(state="disabled")
+    # def print_output(self, string):
+    #    self.txt_output.configure(state="normal")
+    #    self.txt_output.insert(END, string)
+    #    self.txt_output.see(END)
+    #    self.txt_output.configure(state="disabled")
 
     # ------------------------------------------------------------------------------------------------------------------
     #  send_txt_command
@@ -242,9 +243,9 @@ class appUmd(Tk):
         if self.configfile.read("COMMAND", "clear_entry_on_send") == "yes":
             self.entry_cmd.delete(0, END)
         if self.configfile.read("COMMAND", "auto_append_lf") == "yes":
-            self.print_output("sending : " + command + "\n")
+            print("sending : " + command)
         else:
-            self.print_output("sending : " + command)
+            print("sending : " + command)
 
     # ------------------------------------------------------------------------------------------------------------------
     #  open preferences
@@ -278,14 +279,29 @@ class appUmd(Tk):
         exit()
 
 
+class RedirectOutput(TextIOWrapper):
+
+    def __init__(self, txt_object):
+        self.txt_output = txt_object
+
+    def write(self, string):
+        self.txt_output.configure(state="normal")
+        self.txt_output.insert(END, string)
+        self.txt_output.see(END)
+        self.txt_output.configure(state="disabled")
+
+
 # check for config file
-configfile = configfile("umd.conf")
+configfile = ConfigFile("umd.conf")
 
 # create umd
 timeout = float(configfile.read("UMD", "timeout"))
-umdv2 = umdv2(timeout)
+umdv2 = UMDv2(timeout)
+app = AppUmd(configfile, umdv2)
 
-app = appUmd(configfile, umdv2)
+# redirect stdout to the console window in the GUI
+redirector = RedirectOutput(app.txt_output)
+sys.stdout = redirector
 
 if configfile.read("UMD", "auto_connect_on_start") == "yes":
     app.connect_umd()
