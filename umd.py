@@ -70,7 +70,7 @@ class AppUmd(Tk):
         self.menu_file.add_command(label="Preferences", command=self.open_preferences)
         self.menu_file.add_separator()
         self.menu_file.add_command(label="Exit",
-                                   command=lambda: exit())
+                                   command=self.app_exit)
         self.menu.add_cascade(label="File", menu=self.menu_file)
 
         self.menu_help = tk.Menu(self.menu)
@@ -232,9 +232,14 @@ class AppUmd(Tk):
         if len(filepath) > 0:
             if console == "genesis":
                 rom = Genesis(filepath)
-            for item in sorted(rom.read_header().items()):
-                print(item)
-            del rom
+
+            try:
+                for item in sorted(rom.read_header().items()):
+                    print(item)
+                del rom
+            except UnboundLocalError:
+                print("{} read_header unimplemented".format(console))
+
         else:
             messagebox.showwarning("Warning", "You must load a ROM before performing this operation")
 
@@ -347,6 +352,16 @@ class AppUmd(Tk):
     def about_popup():
         messagebox.showinfo("About", "UMDv2 software and hardware designed by René Richard")
 
+    # ------------------------------------------------------------------------------------------------------------------
+    #  app_exit
+    #
+    #  Retrieve the ROM's manufacturer flash ID
+    # ------------------------------------------------------------------------------------------------------------------
+    @staticmethod
+    def app_exit():
+        exit()
+
+
 
 class RedirectOutput(TextIOWrapper):
 
@@ -358,6 +373,9 @@ class RedirectOutput(TextIOWrapper):
         self.txt_output.insert(END, string)
         self.txt_output.see(END)
         self.txt_output.configure(state="disabled")
+
+    def __repr__(self):
+        pass
 
 
 # ------------------------------------------------------------------------------------------------------------------
