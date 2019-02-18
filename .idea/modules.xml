@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="ProjectModuleManager">
-    <modules>
-      <module fileurl="file://$PROJECT_DIR$/../../Arduino/Universal-Mega-Dumper/Python/.idea/Python.iml" filepath="$PROJECT_DIR$/../../Arduino/Universal-Mega-Dumper/Python/.idea/Python.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/UMDv2-python.iml" filepath="$PROJECT_DIR$/.idea/UMDv2-python.iml" />
-    </modules>
-  </component>
-</project>

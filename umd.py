@@ -9,7 +9,6 @@
 ########################################################################
 
 # sudo apt install python3-tk
-# sudo apt install python3-pil python3-pil.imagetk
 # sudo apt install python-pip3
 # pip3 install pyserial
 
@@ -26,7 +25,6 @@ from tkinter import messagebox
 import configparser
 import subprocess
 
-from PIL import Image, ImageTk
 from core.cartridge import Cartridge
 from core.configfile import ConfigFile
 from core.hardware import UMDv2
@@ -136,13 +134,6 @@ class AppUmd(Tk):
                                       command=self.connect_umd).pack(side=LEFT)
 
         self.frm_umdtasks.grid(row=row, column=0, padx=8, pady=4, sticky="nwe")
-
-        # load an image for shits and giggles
-        # self.img_load = Image.open("res/db-favicon.png")
-        # self.render_dblogo = ImageTk.PhotoImage(self.img_load)
-        # self.img_dblogo = Label(self, image=self.render_dblogo)
-        # self.img_dblogo.image = self.render_dblogo
-        # self.img_dblogo.grid(row=row, column=1, padx=4, pady=4, sticky=N+E)
 
         # entry box for sending commands to UMDv2
         row += 1
