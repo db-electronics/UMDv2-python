@@ -227,11 +227,11 @@ class AppUmd(Tk):
     #  select a local file
     # ------------------------------------------------------------------------------------------------------------------
     def read_header(self):
-        filepath = self.var_selectedrom.get()
+        file_path = self.var_selectedrom.get()
         console = self.var_romconsole.get()
-        if len(filepath) > 0:
+        if len(file_path) > 0:
             if console == "genesis":
-                rom = Genesis(filepath)
+                rom = Genesis(file_path)
 
             try:
                 for item in sorted(rom.read_header().items()):
