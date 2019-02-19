@@ -31,10 +31,9 @@ import hashlib
 #  Cartridge
 #
 #  A generic cartridge class to handle common operations for all ROM/cartridge types
+#  all console types inherit from this class
+#  all rom function from child classes should operate on bytes and not files
 class Cartridge:
-
-    md5_hex_str = None
-    md5_bytes = None
 
     # ------------------------------------------------------------------------------------------------------------------
     #  __init__
@@ -43,16 +42,57 @@ class Cartridge:
     # ------------------------------------------------------------------------------------------------------------------
     def __init__(self, path=None):
         self.file_path = path
-        self.header_address = 0
-        self.header_size = 0
+        self._header_address = None
+        self._header_size = None
+        self._md5_hex_str = None
+        self._md5_bytes = None
+        self._header_bytes = None
 
     @property
     def header_address(self):
-        return self.header_address
+        return self._header_address
 
     @property
     def header_size(self):
-        return self.header_size
+        return self._header_size
+
+    @property
+    def md5_bytes(self):
+        return self._md5_bytes
+
+    @property
+    def md5_hex_str(self):
+        return self._md5_hex_str
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #  get_header_from_file
+    #
+    #  extract the header portion of a ROM file
+    # ------------------------------------------------------------------------------------------------------------------
+    def get_header_from_file(self):
+        with open(self.file_path, "rb") as f:
+            f.seek(self.header_address, 0)
+            self._header_bytes = f.read(self.header_size)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #  get_header_from_file
+    #
+    #  extract the header portion of a ROM file
+    # ------------------------------------------------------------------------------------------------------------------
+    def format_header(self):
+
+        formatted = {}
+        # check if dealing with local ROM or remote ROM
+        if self.file_path is not None:
+            self.get_header_from_file()
+
+        for key, value in self.header.indexes.items():
+            #print("{} {}".format(key, value))
+            start = value[0] - self._header_address
+            finish = start + (value[1] - 1)
+            if value[2] == "str":
+                out = self._header_bytes[start:finish].decode("utf-8", "replace")
+                print(out)
 
     # ------------------------------------------------------------------------------------------------------------------
     #  md5
@@ -66,10 +106,9 @@ class Cartridge:
                 for chunk in iter(lambda: f.read(4096), b""):
                     hash_md5.update(chunk)
             # packed bytes
-            self.md5_bytes = hash_md5.digest()
+            self._md5_bytes = hash_md5.digest()
             # hex string
-            self.md5_hex_str = hash_md5.hexdigest()
-            return hash_md5.digest()
+            self._md5_hex_str = hash_md5.hexdigest()
         else:
             print("No file path specified for source file")
 

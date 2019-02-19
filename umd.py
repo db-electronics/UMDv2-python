@@ -234,9 +234,7 @@ class AppUmd(Tk):
                 rom = Genesis(file_path)
 
             try:
-                for item in sorted(rom.read_header().items()):
-                    print(item)
-                del rom
+                rom.format_header()
             except UnboundLocalError:
                 print("{} read_header unimplemented".format(console))
 
