@@ -36,14 +36,25 @@ class Genesis(Cartridge):
 
     checksumRom = 0
     checksumCalc = 0
-    
-    header_address = 0x100
+
     headerChecksum = 0x18E
-    headerSize = 0x100
+
     header_dict = {}
     romStartAddress = 0x200
     
     readChunkSize = 2048
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #  __init__
+    #
+    #  initialize - create a default cartridge
+    # ------------------------------------------------------------------------------------------------------------------
+    def __init__(self, path=None):
+        super().__init__(path)
+
+        # override header attributes for Genesis
+        self.header_address = 0x100
+        self.header_size = 0x100
 
 ########################################################################    
 ## byteSwap(self, ifile, ofile):
@@ -81,9 +92,9 @@ class Genesis(Cartridge):
         # Genesis checksums start after the header
         pos = self.romStartAddress
         self.checksumCalc = 0
-        fileSize = os.path.getsize(self.filepath)
+        fileSize = os.path.getsize(self.file_path)
         
-        with open(self.filepath, "rb") as f:
+        with open(self.file_path, "rb") as f:
             
             # read the ROM header's checksum value
 
@@ -120,9 +131,9 @@ class Genesis(Cartridge):
 ########################################################################
     def read_header(self):
         
-        # clear current rom info dictionnary
+        # clear current rom info dictionary
         self.header_dict.clear()
-        with open(self.filepath, "rb") as f:
+        with open(self.file_path, "rb") as f:
 
             f.seek(self.header_address, 0)
             # get console name
@@ -136,29 +147,29 @@ class Genesis(Cartridge):
             # get serial number
             self.header_dict.update({"Serial Number": f.read(14).decode("utf-8", "replace")})
             # get checksum
-            data = int.from_bytes(f.read(2), byteorder="big" )
+            data = int.from_bytes(f.read(2), byteorder="big")
             self.header_dict.update({"Checksum": [data, hex(data)]})
             # get io support
             self.header_dict.update({"IO Support": f.read(16).decode("utf-8", "replace")})
             # get ROM Start Address
-            data = int.from_bytes(f.read(4), byteorder="big" )
+            data = int.from_bytes(f.read(4), byteorder="big")
             self.header_dict.update({"ROM Begin": [data, hex(data)]})
             # get ROM End Address
-            data = int.from_bytes(f.read(4), byteorder="big" )
+            data = int.from_bytes(f.read(4), byteorder="big")
             self.header_dict.update({"ROM End": [data, hex(data)]})
             # get Start of RAM
-            data = int.from_bytes(f.read(4), byteorder="big" )
+            data = int.from_bytes(f.read(4), byteorder="big")
             self.header_dict.update({"RAM Begin": [data, hex(data)]})
             # get End of RAM
-            data = int.from_bytes(f.read(4), byteorder="big" )
+            data = int.from_bytes(f.read(4), byteorder="big")
             self.header_dict.update({"RAM End": [data, hex(data)]})
             # get sram support
             self.header_dict.update({"SRAM Support": f.read(4)})
             # get start of sram
-            data = int.from_bytes(f.read(4), byteorder="big" )
+            data = int.from_bytes(f.read(4), byteorder="big")
             self.header_dict.update({"SRAM Begin": [data, hex(data)]})
             # get end of sram
-            data = int.from_bytes(f.read(4), byteorder="big" )
+            data = int.from_bytes(f.read(4), byteorder="big")
             self.header_dict.update({"SRAM End": [data, hex(data)]})
             # get modem support
             self.header_dict.update({"Modem Support": f.read(12).decode("utf-8", "replace")})
