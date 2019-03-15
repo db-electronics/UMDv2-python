@@ -54,7 +54,7 @@ class UMDv2:
     def list_serial_ports(self):
         # enumerate ports
         if sys.platform.startswith("win"):
-            ports = ["COM%s" % (i + 1) for i in range(256)]
+            ports = ["COM%s" % (i + 1) for i in range(32)]
         elif sys.platform.startswith("linux"):
             ports = glob.glob("/dev/ttyA[A-Za-z]*")
         elif sys.platform.startswith("darwin"):
@@ -79,7 +79,7 @@ class UMDv2:
             pass
         else:
             for port in check_ports:
-                print("attempting to connect to UMDv2 on " + port + " : ", end='')
+                print("attempting to connect to UMDv2 on {}".format(port))
                 try:
                     ser = serial.Serial(port=port,
                                         baudrate=460800,
