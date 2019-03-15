@@ -67,7 +67,8 @@ class AppUmd(Tk):
         self.menu_file = tk.Menu(self.menu)
         self.menu_file.add_command(label="Select ROM", command=self.select_rom)
         self.menu_file.add_separator()
-        self.menu_file.add_command(label="Preferences", command=self.open_preferences)
+        self.menu_file.add_command(
+            label="Preferences", command=self.open_preferences)
         self.menu_file.add_separator()
         self.menu_file.add_command(label="Exit",
                                    command=self.app_exit)
@@ -82,12 +83,14 @@ class AppUmd(Tk):
         # add elements to the window
         row = 0
         self.lbl_romtasks = tk.Label(self, text="ROM Tasks")
-        self.lbl_romtasks.grid(row=row, column=0, columnspan=2, padx=8, pady=4, sticky="w")
+        self.lbl_romtasks.grid(
+            row=row, column=0, columnspan=2, padx=8, pady=4, sticky="w")
         row += 1
         # buttons for local ROM tasks
         self.frm_romtasks = tk.Frame(self)
         self.var_romconsole = tk.StringVar(self)
-        self.var_romconsole.set(self.configfile.read("CONSOLE", "last_selected"))
+        self.var_romconsole.set(
+            self.configfile.read("CONSOLE", "last_selected"))
         self.opt_romconsole = tk.OptionMenu(self.frm_romtasks,
                                             self.var_romconsole,
                                             *self.cart_types,
@@ -121,7 +124,8 @@ class AppUmd(Tk):
         # buttons for remote UMD tasks
         row += 1
         self.sep_console = tk.Frame(self, height=2, bd=10, relief=RAISED)
-        self.sep_console.grid(row=row, column=0, columnspan=2, sticky="we", padx=10)
+        self.sep_console.grid(
+            row=row, column=0, columnspan=2, sticky="we", padx=10)
         row += 1
         self.lbl_umdtasks = tk.Label(self, text="UMD Tasks")
         self.lbl_umdtasks.grid(row=row, column=0, padx=8, pady=4, sticky="w")
@@ -138,7 +142,8 @@ class AppUmd(Tk):
         # entry box for sending commands to UMDv2
         row += 1
         self.sep_console = tk.Frame(self, height=2, bd=10, relief=RAISED)
-        self.sep_console.grid(row=row, column=0, columnspan=2, sticky="we", padx=10)
+        self.sep_console.grid(
+            row=row, column=0, columnspan=2, sticky="we", padx=10)
         row += 1
         self.lbl_output = tk.Label(self, text="Send Command")
         self.lbl_output.grid(row=row, padx=8, sticky="nw")
@@ -158,14 +163,17 @@ class AppUmd(Tk):
         # create a frame for console output and scrollbar
         self.frm_console = tk.Frame(self)
         self.txt_output = tk.Text(self.frm_console, height=20, width=120)
-        self.txt_output.config(bg="black", fg="cyan", font=("Courier", 10), padx=4, pady=4)
+        self.txt_output.config(bg="black", fg="cyan",
+                               font=("Courier", 10), padx=4, pady=4)
         self.txt_output.grid(row=0, column=0, padx=4, pady=4, sticky="nwes")
-        self.scroll_txt = Scrollbar(self.frm_console, command=self.txt_output.yview)
+        self.scroll_txt = Scrollbar(
+            self.frm_console, command=self.txt_output.yview)
         self.scroll_txt.grid(row=0, column=1, sticky="nwes")
         self.txt_output['yscrollcommand'] = self.scroll_txt.set
         self.frm_console.grid_rowconfigure(0, weight=1)
         self.frm_console.grid_columnconfigure(0, weight=1)
-        self.frm_console.grid(row=row, column=0, columnspan=2, padx=4, pady=4, sticky="nwes")
+        self.frm_console.grid(row=row, column=0, columnspan=2,
+                              padx=4, pady=4, sticky="nwes")
 
         # resize the frm_console on window resize
         self.columnconfigure(0, weight=1)
@@ -239,7 +247,8 @@ class AppUmd(Tk):
                 print("{} read_header unimplemented".format(console))
 
         else:
-            messagebox.showwarning("Warning", "You must load a ROM before performing this operation")
+            messagebox.showwarning(
+                "Warning", "You must load a ROM before performing this operation")
 
     # ------------------------------------------------------------------------------------------------------------------
     #  select console
@@ -251,10 +260,12 @@ class AppUmd(Tk):
         if len(filepath) > 0:
             rom = Cartridge(filepath)
             rom.md5()
-            print("MD5 sum of {} is {}".format(os.path.basename(filepath), rom.md5_hex_str))
+            print("MD5 sum of {} is {}".format(
+                os.path.basename(filepath), rom.md5_hex_str))
             del rom
         else:
-            messagebox.showwarning("Warning", "You must load a ROM before performing this operation")
+            messagebox.showwarning(
+                "Warning", "You must load a ROM before performing this operation")
 
     # ------------------------------------------------------------------------------------------------------------------
     #  select console
@@ -284,7 +295,8 @@ class AppUmd(Tk):
     #  select a ROM file, default to this console's ROM directory
     # ------------------------------------------------------------------------------------------------------------------
     def select_rom(self):
-        initial_directory = self.configfile.read("ROMDIRECTORIES", self.var_romconsole.get())
+        initial_directory = self.configfile.read(
+            "ROMDIRECTORIES", self.var_romconsole.get())
         selection = filedialog.askopenfilename(initialdir=initial_directory)
         if len(selection) > 0:
             self.var_selectedrom.set(selection)
@@ -348,7 +360,8 @@ class AppUmd(Tk):
     # ------------------------------------------------------------------------------------------------------------------
     @staticmethod
     def about_popup():
-        messagebox.showinfo("About", "UMDv2 software and hardware designed by René Richard")
+        messagebox.showinfo(
+            "About", "UMDv2 software and hardware designed by René Richard")
 
     # ------------------------------------------------------------------------------------------------------------------
     #  app_exit
@@ -358,7 +371,6 @@ class AppUmd(Tk):
     @staticmethod
     def app_exit():
         exit()
-
 
 
 class RedirectOutput(TextIOWrapper):
@@ -400,4 +412,3 @@ if __name__ == "__main__":
         app.connect_umd()
 
     app.mainloop()
-

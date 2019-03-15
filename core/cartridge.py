@@ -89,10 +89,30 @@ class Cartridge:
         for key, value in self.header.indexes.items():
             #print("{} {}".format(key, value))
             start = value[0] - self._header_address
-            finish = start + (value[1] - 1)
+            finish = start + (value[1])
+            chunk = self._header_bytes[start:finish]
             if value[2] == "str":
-                out = self._header_bytes[start:finish].decode("utf-8", "replace")
-                print(out)
+                out = chunk.decode("utf-8", "replace")
+            elif value[2] == "int":
+                out = int.from_bytes(chunk, byteorder="small")
+            elif value[2] == "intx":
+                out = hex(int.from_bytes(chunk, byteorder="small"))
+            elif value[2] == "bint":
+                out = int.from_bytes(chunk, byteorder="big")
+            elif value[2] == "bintx":
+                out = hex(int.from_bytes(chunk, byteorder="big"))
+            elif value[2] == "bytes":
+                out = ""
+                for b in chunk:
+                    # "{value:#0{padding}x}"
+                    out += "{0:#0{1}x} ".format(b,4)
+            elif value[2] == "bits":
+                out = ""
+                for b in chunk:
+                    out += "{:#010b} ".format(b)
+            else:
+                out = chunk
+            print("{} : {}".format(key, out))
 
     # ------------------------------------------------------------------------------------------------------------------
     #  md5
